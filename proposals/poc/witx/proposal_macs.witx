@@ -1,0 +1,61 @@
+;; WASI Cryptography API.
+;;
+;; This is a `witx` file. See [here](https://github.com/WebAssembly/WASI/tree/master/docs/witx.md)
+;; for an explanation of what that means.
+
+(use "typenames.witx")
+
+;;; A handle for internal MAC operation state.
+(typename $mac_state (handle))
+
+(module $wasi_ephemeral_crypto_mac
+  ;;; Linear memory to be accessed by WASI functions that need it.
+  (import "memory" (memory))
+
+  ;;; Create a handle for MAC (Message Authentication Code)
+  ;;; operations.
+  (@interface func (export "mac_open")
+    ;;; The name of the signing algorithm.
+    (param $algorithm string)
+    ;;; The key for this operation.
+    (param $key (@witx const_pointer u8))
+    (param $key_len $size)
+    ;;; Options for this operation.
+    (param $options $options)
+    (result $error $crypto_errno)
+    (result $state $mac_state)
+  )
+
+  ;;; Close a handle for MAC operations.
+  (@interface func (export "mac_close")
+    (param $state $mac_state)
+    (result $error $crypto_errno)
+  )
+
+  ;;; Feed some data. This function can be called as many times while
+  ;;; the MAC handle is open.
+  (@interface func (export "mac_update")
+    (param $state $mac_state)
+    ;;; The data to be fed.
+    (param $data (@witx const_pointer u8))
+    (param $data_len $size)
+    (result $error $crypto_errno)
+  )
+
+  ;;; Extract the MAC value.
+  (@interface func (export "mac_digest")
+    (param $state $mac_state)
+    (param $digest (@witx pointer u8))
+    (param $max_digest_len $size)
+    (result $error $crypto_errno)
+    (result $digest_len $size)
+  )
+
+  ;;; Verify that a MAC object matches the given digest.
+  (@interface func (export "mac_verify")
+    (param $state $mac_state)
+    (param $digest (@witx const_pointer u8))
+    (param $digest_len $size)
+    (result $error $crypto_errno)
+  )
+)

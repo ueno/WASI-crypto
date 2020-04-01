@@ -23,3 +23,5 @@
 (typename $size (@witx usize))
 
 (typename $array_output (handle))
+
+(typename $options (handle))

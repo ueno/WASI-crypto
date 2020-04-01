@@ -8,6 +8,7 @@ mod signature;
 mod signature_keypair;
 mod signature_op;
 mod signature_publickey;
+mod mac;
 
 use array_output::*;
 use handles::*;
@@ -15,6 +16,7 @@ use signature::*;
 use signature_keypair::*;
 use signature_op::*;
 use signature_publickey::*;
+use mac::*;
 
 pub use error::CryptoError;
 pub use handles::Handle;
@@ -29,7 +31,8 @@ static REBUILD_IF_WITX_FILE_IS_UPDATED: &str = include_str!(concat!(
 ));
 
 wiggle::from_witx!({
-    witx: ["../witx/proposal_signatures.witx"],
+    witx: ["../witx/proposal_signatures.witx",
+	   "../witx/proposal_macs.witx"],
     ctx: WasiCryptoCtx
 });
 
@@ -42,6 +45,7 @@ pub struct HandleManagers {
     pub signature_publickey: HandlesManager<SignaturePublicKey>,
     pub signature_verification_state: HandlesManager<ExclusiveSignatureVerificationState>,
     pub array_output: HandlesManager<ArrayOutput>,
+    pub mac_state: HandlesManager<MacState>,
 }
 
 pub struct CryptoCtx {
@@ -64,6 +68,7 @@ impl CryptoCtx {
                 signature: HandlesManager::new(0x05),
                 signature_publickey: HandlesManager::new(0x06),
                 signature_verification_state: HandlesManager::new(0x07),
+		mac_state: HandlesManager::new(0x06),
             },
         }
     }
@@ -103,4 +108,21 @@ fn test_signatures() {
     ctx.signature_verification_state_close(verification_state_handle)
         .unwrap();
     ctx.signature_close(signature_handle).unwrap();
+}
+
+#[test]
+fn test_macs() {
+    let ctx = CryptoCtx::new();
+    let mac_handle = ctx.mac_open("HMAC-SHA256", b"test", &[]).unwrap();
+    ctx.mac_update(mac_handle, b"test").unwrap();
+    let mut digest = vec![0; 32];
+    let digest_len = ctx.mac_digest(mac_handle, &mut digest).unwrap();
+    assert_eq!(digest_len, 32);
+    let expected: &[u8] = &[0xad, 0x71, 0x14, 0x8c, 0x79, 0xf2, 0x1a, 0xb9,
+			    0xee, 0xc5, 0x1e, 0xa5, 0xc7, 0xdd, 0x2b, 0x66,
+			    0x87, 0x92, 0xf7, 0xc0, 0xd3, 0x53, 0x4a, 0xe6,
+			    0x6b, 0x22, 0xf7, 0x1c, 0x61, 0x52, 0x3f, 0xb3];
+    assert_eq!(digest, expected);
+    ctx.mac_verify(mac_handle, expected).unwrap();
+    ctx.mac_close(mac_handle).unwrap();
 }
