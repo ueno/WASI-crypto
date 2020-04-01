@@ -1,26 +1,6 @@
 ;; WASI Cryptography API
 
-(typename $crypto_errno
-  (enum u16
-    $success
-    $guest_error
-    $not_implemented
-    $unsupported_feature
-    $prohibited_operation
-    $unsupported_encoding
-    $unsupported_algorithm
-    $invalid_key
-    $verification_failed
-    $rng_error
-    $algorithm_failure
-    $invalid_signature
-    $closed
-    $invalid_handle
-    $overflow
-    $internal_error
-    $too_many_handles
-  )
-)
+(use "typenames.witx")
 
 (typename $keypair_encoding
   (enum u16
@@ -65,9 +45,6 @@
   )
 )
 
-(typename $size (@witx usize))
-
-(typename $array_output (handle))
 (typename $signature_op (handle))
 (typename $signature_keypair_builder (handle))
 (typename $signature_keypair (handle))
